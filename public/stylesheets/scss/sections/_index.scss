@@ -1,0 +1,10 @@
+// admin
+@forward 'admin-products-index';
+@forward 'new-product';
+@forward 'admin-categories-index';
+@forward 'new-category';
+@forward 'admin-product-details';
+@forward 'admin-category-details';
+@forward 'edit-category';
+
+// other

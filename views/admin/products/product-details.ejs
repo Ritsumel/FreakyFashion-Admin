@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="sv-se">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://kit.fontawesome.com/6a0526b489.js" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="icon" href="/public/images/freakyfashion-icon-32x32.png" sizes="32x32">
+    <link rel="stylesheet" href="/public/stylesheets/site.min.css">
+    <title>Administration</title>
+</head>
+
+<body>
+
+    <!-- header section -->
+    <%- include("../../partials/admin-header") %>
+
+    <!-- main section -->
+    <main>
+
+        <section id="admin-product-details">
+
+            <%- include("../../partials/admin-sidebar") %>
+
+            <div class="content">
+
+                <div class="top-container">
+                    <h3>Svart T-Shirt</h3>
+
+                    <div class="buttons">
+                        <button class="btn-theme">Radera</button>
+                        <button class="btn-theme">Publisera</button>
+                    </div>
+                </div>
+
+                <div class="bottom-container">
+                    <div class="info">
+                        <h6>Namn</h6>
+                        <p>Svart T-Shirt</p>
+                    </div>
+
+                    <div class="info">
+                        <h6>Beskrivning</h6>
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                    </div>
+
+                    <div class="info">
+                        <h6>Bild</h6>
+                        <img src="placeholder.jpg" alt="Svart T-Shirt">
+                    </div>
+
+                    <div class="info">
+                        <h6>Pris</h6>
+                        <p>199</p>
+                    </div>
+
+                    <div class="info">
+                        <h6>Publiseringsdatum</h6>
+                        <p>Ej publiserad</p>
+                    </div>
+
+                    <div class="info">
+                        <h6>Slug</h6>
+                        <p>svart-tshirt</p>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>

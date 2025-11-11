@@ -1,0 +1,26 @@
+@use '../../globals' as *;
+
+.admin-sidebar {
+    display: flex;
+    min-height: 100vh;
+    max-width: 22rem;
+    flex: 1 1 22rem;
+    background-color: $sidebar-bg;
+    padding: 40px 30px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 30px;
+
+    a {
+        font-size: 1.5rem;
+        display: inline;
+        text-decoration: none;
+        color: $text-dark;
+        font-weight: 600;
+
+        &.active {
+            color: $link-highlight; // highlight color
+            font-weight: 700;
+        }
+    }
+}

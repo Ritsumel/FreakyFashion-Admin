@@ -4,7 +4,8 @@ document.querySelector('.new-product-form').addEventListener('submit', async (e)
     const name = document.getElementById('name').value.trim();
     const description = document.getElementById('description').value.trim();
     const image_url = document.getElementById('image-url').value.trim();
-    const price = parseFloat(document.getElementById('price').value);
+    const priceInput = document.getElementById('price').value;
+    const price = priceInput ? parseFloat(priceInput) : null;
     const sku = document.getElementById('sku').value.trim();
     const publish = document.getElementById('publish').checked;
 

@@ -1,7 +1,6 @@
 // --- Global reusable fetch wrapper ---
 async function apiFetch(url, options = {}) {
   try {
-
     console.log('🧾 Fetching:', url, options); // log every request
 
     const res = await fetch(url, {
@@ -24,26 +23,55 @@ async function apiFetch(url, options = {}) {
   }
 }
 
-// --- Global delete button handler ---
+// --- Global delete + publish handler ---
 document.addEventListener('click', async (e) => {
   const deleteBtn = e.target.closest('[data-delete]');
-  if (!deleteBtn) return;
+  const publishBtn = e.target.closest('[data-publish]');
 
-  e.preventDefault();
-  const url = deleteBtn.getAttribute('data-delete');
-  const confirmDelete = confirm('Är du säker att du vill radera?');
-  if (!confirmDelete) return;
+  // Handle DELETE
+  if (deleteBtn) {
+    e.preventDefault();
+    const url = deleteBtn.getAttribute('data-delete');
+    const confirmDelete = confirm('Är du säker att du vill radera?');
+    if (!confirmDelete) return;
 
-  try {
-    await apiFetch(url, { method: 'POST' });
-    // ✅ If we're on a details page, redirect to the list
-    if (window.location.pathname.includes('/admin/categories/')) {
-      window.location.href = '/admin/categories';
-    } else {
-      window.location.reload();
+    try {
+      await apiFetch(url, { method: 'POST' });
+
+      // Redirect based on where we are
+      if (window.location.pathname.includes('/admin/products/')) {
+        window.location.href = '/admin/products';
+      } else if (window.location.pathname.includes('/admin/categories/')) {
+        window.location.href = '/admin/categories';
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
     }
-  } catch (err) {
-    console.error('Delete failed:', err);
+  }
+
+  // Handle PUBLISH / UNPUBLISH toggle
+  if (publishBtn) {
+    e.preventDefault();
+    const url = publishBtn.getAttribute('data-publish');
+
+    // Decide message based on button text
+    const isPublishing = publishBtn.textContent.trim().toLowerCase().includes('publisera');
+    const confirmMsg = isPublishing
+      ? 'Är du säker på att du vill publisera denna produkt?'
+      : 'Är du säker på att du vill avpublisera denna produkt?';
+
+    const confirmAction = confirm(confirmMsg);
+    if (!confirmAction) return;
+
+    try {
+      await apiFetch(url, { method: 'POST' });
+      window.location.reload(); // refresh to show new state
+    } catch (err) {
+      console.error('Publish toggle failed:', err);
+      alert('Ett fel uppstod vid ändring av publiceringsstatus.');
+    }
   }
 });
 

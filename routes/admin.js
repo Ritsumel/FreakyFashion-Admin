@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
+
 // --- Admin auth middleware ---
 router.use((req, res, next) => {
   req.user = { isAdmin: true };
   next();
 });
+
 
 // --- Categories ---
 
@@ -18,15 +20,26 @@ router.get('/categories', (req, res) => {
       c.name, 
       c.slug, 
       c.image_url,
-      (SELECT COUNT(*) FROM products WHERE category_id = c.id) AS productCount
+      (
+        SELECT COUNT(*)
+        FROM product_categories pc
+        WHERE pc.category_id = c.id
+      ) AS productCount
     FROM categories c
     ORDER BY c.name
   `;
+
   db.all(query, [], (err, rows) => {
     if (err) {
       console.error(err);
       return res.status(500).send("Database error");
     }
+
+    rows.forEach(row => {
+      if (!row.image_url || row.image_url.trim() === '') {
+        row.image_url = '/images/freakyfashion-placeholder.png';
+      }
+    });
 
     res.render('admin/categories/categories-index', {
       baseUrl: '/admin',
@@ -36,7 +49,7 @@ router.get('/categories', (req, res) => {
   });
 });
 
-// ✅ New category page (must come BEFORE /:id)
+// New category page (must come BEFORE /:id)
 router.get('/categories/new', (req, res) => {
   res.render('admin/categories/new-category', { baseUrl: '/admin', activePage: 'categories' });
 });
@@ -46,11 +59,20 @@ router.get('/categories/:id', (req, res) => {
   const categoryId = req.params.id;
 
   const queryCategory = `SELECT * FROM categories WHERE id = ?`;
-  const queryProducts = `SELECT id, name, sku FROM products WHERE category_id = ?`;
+  const queryProducts = `
+    SELECT p.id, p.name, p.sku
+    FROM products p
+    JOIN product_categories pc ON p.id = pc.product_id
+    WHERE pc.category_id = ?
+  `;
 
   db.get(queryCategory, [categoryId], (err, categoryRow) => {
     if (err) return res.status(500).send('Database error');
     if (!categoryRow) return res.status(404).send('Category not found');
+
+    if (!categoryRow.image_url || categoryRow.image_url.trim() === '') {
+      categoryRow.image_url = '/images/freakyfashion-placeholder.png';
+    }
 
     db.all(queryProducts, [categoryId], (err, productsRows) => {
       if (err) return res.status(500).send('Database error');
@@ -71,7 +93,12 @@ router.get('/categories/:id', (req, res) => {
 router.get('/categories/:id/edit', (req, res) => {
   const categoryId = req.params.id;
   const queryCategory = `SELECT * FROM categories WHERE id = ?`;
-  const queryProducts = `SELECT id, name, sku FROM products WHERE category_id = ?`;
+  const queryProducts = `
+    SELECT p.id, p.name, p.sku
+    FROM products p
+    JOIN product_categories pc ON p.id = pc.product_id
+    WHERE pc.category_id = ?
+  `;
 
   db.get(queryCategory, [categoryId], (err, categoryRow) => {
     if (err) return res.status(500).send('Database error');
@@ -112,6 +139,19 @@ router.get('/products/:id', (req, res) => {
   db.get('SELECT * FROM products WHERE id = ?', [productId], (err, product) => {
     if (err) return res.status(500).send('Database error');
     if (!product) return res.status(404).send('Product not found');
+
+    // Format publishDate before rendering
+    if (product.publishDate) {
+      const date = new Date(product.publishDate);
+      product.formattedDate = date.toLocaleString('sv-SE', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      }).replace(',', '');
+    }
 
     res.render('admin/products/product-details', {
       baseUrl: '/admin',

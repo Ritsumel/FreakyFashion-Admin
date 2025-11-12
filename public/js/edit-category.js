@@ -1,4 +1,7 @@
-const products = []; // existing products in the category (we’ll fill it later)
+const products = JSON.parse(
+  document.getElementById('category-products')?.textContent || '[]'
+);
+console.log('Loaded products:', products);
 const skuInput = document.getElementById('sku');
 const productsTable = document.querySelector('.categories-view');
 
@@ -36,13 +39,15 @@ skuInput?.addEventListener('keypress', async (e) => {
 
 // --- Render product list ---
 function renderProducts() {
-  const nameCol = productsTable?.querySelectorAll('.category-details')[0];
-  const skuCol = productsTable?.querySelectorAll('.category-details')[1];
+  const [nameCol, skuCol, deleteCol] = productsTable.querySelectorAll('.category-details');
 
-  if (!nameCol || !skuCol) return;
-
-  nameCol.innerHTML = `<h6>Namn</h6>${products.map(p => `<p>${p.name}</p>`).join('')}`;
+  nameCol.innerHTML = `<h6>Namn</h6>${products.map(p => `<p><a href="/admin/products/${p.id}">${p.name}</a></p>`).join('')}`;
   skuCol.innerHTML = `<h6>SKU</h6>${products.map(p => `<p>${p.sku}</p>`).join('')}`;
+  deleteCol.innerHTML = `<h6></h6>${products.map(p => `
+    <button class="delete-btn" data-id="${p.id}">
+      <i class="fa-solid fa-trash-can"></i>
+    </button>
+  `).join('')}`;
 }
 
 // --- Handle form submit ---
@@ -80,4 +85,20 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Kunde inte ansluta till servern');
     }
   });
+});
+
+// --- Handle product deletion within edit view ---
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.delete-btn');
+  if (!btn) return;
+
+  e.preventDefault(); // stop form submit or reload
+
+  const id = parseInt(btn.dataset.id);
+  const index = products.findIndex(p => p.id === id);
+  if (index === -1) return;
+
+  // remove from local array and re-render (no confirmation)
+  products.splice(index, 1);
+  renderProducts();
 });

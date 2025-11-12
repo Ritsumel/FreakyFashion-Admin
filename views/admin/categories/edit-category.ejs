@@ -35,7 +35,7 @@
 
                     <div class="form-group image-url">
                         <label for="image-url">Bild</label>
-                        <input type="url" id="image-url" name="image_url" value="<%= category.image_url %>" required>
+                        <input type="url" id="image-url" name="image_url" value="<%= category.image_url %>">
                     </div>
 
                     <div class="form-group url-slug">
@@ -108,6 +108,9 @@
 
     </main>
 
+    <script id="category-products" type="application/json">
+        <%- JSON.stringify(category.products || []).replace(/</g, '\\u003c') %>
+    </script>
     <script src="/js/edit-category.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

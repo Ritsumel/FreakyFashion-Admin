@@ -57,7 +57,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const slug = document.getElementById('slug').value.trim().toLowerCase().replace(/\s+/g, '-');
     const image_url = document.getElementById('image-url').value.trim();
     const productIds = products.map(p => p.id);
-    const categoryId = window.location.pathname.split('/').pop();
+    const parts = window.location.pathname.split('/');
+    const categoryId = parts[parts.length - 2];
+
+    console.log("🧠 Category ID:", categoryId);
+    console.log("📦 Body:", { name, slug, image_url, productIds });
 
     try {
       const res = await fetch(`/api/categories/${categoryId}`, {

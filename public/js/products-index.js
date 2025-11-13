@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-      // fill rows
+      // Fill rows
       products.forEach(p => {
         columns[0].insertAdjacentHTML('beforeend', `<p><a href="/admin/products/${p.id}">${p.name}</a></p>`);
         columns[1].insertAdjacentHTML('beforeend', `<p>${p.sku}</p>`);

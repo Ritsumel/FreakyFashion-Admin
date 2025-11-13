@@ -78,24 +78,23 @@ document.addEventListener('click', async (e) => {
 // --- Category search filter ---
 document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('search-bar');
-  if (!searchInput) return; // stop if not on categories page
+  if (!searchInput) return;
 
-  const nameCells = Array.from(document.querySelectorAll('.category-details:first-child p'));
+  const nameColumn = document.querySelectorAll('.category-details:first-child p');
+  const productColumn = document.querySelectorAll('.category-details:nth-child(2) p');
+  const deleteColumn = document.querySelectorAll('.category-details:nth-child(3) button');
 
   searchInput.addEventListener('input', () => {
     const query = searchInput.value.toLowerCase();
-    const allColumns = document.querySelectorAll('.category-details');
-    const columnCount = allColumns.length;
 
-    nameCells.forEach((nameCell, index) => {
+    nameColumn.forEach((nameCell, index) => {
       const categoryName = nameCell.textContent.toLowerCase();
-      const isVisible = categoryName.includes(query);
+      const visible = categoryName.includes(query);
 
-      for (let i = 0; i < columnCount; i++) {
-        const cell = allColumns[i].querySelectorAll('p')[index];
-        if (!cell) continue;
-        cell.style.display = isVisible ? '' : 'none';
-      }
+      // toggle visibility across all three columns
+      [nameCell, productColumn[index], deleteColumn[index]].forEach(el => {
+        if (el) el.style.display = visible ? '' : 'none';
+      });
     });
   });
 });

@@ -17,7 +17,7 @@ skuInput.addEventListener('keypress', async (e) => {
         if (data.length > 0) {
           const product = data[0];
 
-          // prevents duplicates
+          // Prevents duplicates
           if (products.some(p => p.id === product.id)) {
             alert('Produkten finns redan i listan.');
             skuInput.value = '';

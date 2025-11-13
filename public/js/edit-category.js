@@ -98,7 +98,7 @@ document.addEventListener('click', (e) => {
   const index = products.findIndex(p => p.id === id);
   if (index === -1) return;
 
-  // remove from local array and re-render (no confirmation)
+  // Remove from local array and re-render
   products.splice(index, 1);
   renderProducts();
 });

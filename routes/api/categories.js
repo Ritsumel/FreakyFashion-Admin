@@ -19,13 +19,13 @@ router.post('/categories', (req, res) => {
 
   stmt.run([name, slug, image_url], function (err) {
     if (err) {
-      console.error('❌ Error inserting category:', err);
+      console.error('Error inserting category:', err);
       return res.status(500).json({ error: 'Database error' });
     }
 
     const categoryId = this.lastID;
 
-    // assign products (many-to-many via product_categories)
+    // Assign products (many-to-many via product_categories)
     if (Array.isArray(productIds) && productIds.length > 0) {
       const insert = db.prepare(`
         INSERT OR IGNORE INTO product_categories (product_id, category_id)
@@ -45,7 +45,12 @@ router.post('/categories', (req, res) => {
 // UPDATE category (POST /api/categories/:id)
 router.post('/categories/:id', (req, res) => {
   const { id } = req.params;
-  const { name, slug, image_url, productIds } = req.body;
+  let { name, slug, image_url, productIds } = req.body;
+
+  // ensure image_url is never empty
+  if (!image_url || image_url.trim() === '') {
+    image_url = '/images/freakyfashion-placeholder.png';
+  }
 
   const query = `
     UPDATE categories 
@@ -59,11 +64,11 @@ router.post('/categories/:id', (req, res) => {
       return res.status(500).json({ error: 'Database error' });
     }
 
-    // step 1: Remove all existing links
+    // Step 1: Remove all existing links
     db.run(`DELETE FROM product_categories WHERE category_id = ?`, [id], (err) => {
       if (err) console.error(err);
 
-      // step 2: Add new links
+      // Step 2: Add new links
       if (productIds && productIds.length > 0) {
         const insert = db.prepare(`
           INSERT OR IGNORE INTO product_categories (product_id, category_id)
@@ -84,11 +89,11 @@ router.post('/categories/:id', (req, res) => {
 router.post('/categories/:id/delete', (req, res) => {
   const { id } = req.params;
 
-  // remove links first
+  // Remove links first
   db.run(`DELETE FROM product_categories WHERE category_id = ?`, [id], (err) => {
     if (err) console.error(err);
 
-    // then delete category
+    // Then delete category
     db.run(`DELETE FROM categories WHERE id = ?`, [id], function (err) {
       if (err) {
         console.error(err);

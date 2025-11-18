@@ -9,8 +9,13 @@ async function apiFetch(url, options = {}) {
     });
 
     if (!res.ok) {
-      console.error(`API error ${res.status}: ${res.statusText}`);
-      throw new Error(`API request failed`);
+      let errMessage = `API request failed (${res.status})`;
+      try {
+        const errJson = await res.json();
+        if (errJson.error) errMessage = errJson.error;
+      } catch (_) {}
+      alert(errMessage);
+      throw new Error(errMessage);
     }
 
     // Handle JSON or empty response

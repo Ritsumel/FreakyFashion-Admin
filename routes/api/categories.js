@@ -1,13 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../db');
+const slugify = require('../../utils/slugify');
 
 // CREATE category (POST /api/categories)
 router.post('/categories', (req, res) => {
   let { name, image_url, productIds } = req.body;
   if (!name) return res.status(400).json({ error: 'Name is required' });
 
-  const slug = name.toLowerCase().replace(/\s+/g, '-');
+  const slug = slugify(name); 
+
   if (!image_url || image_url.trim() === '') {
     image_url = '/images/freakyfashion-placeholder.png';
   }
@@ -35,7 +37,6 @@ router.post('/categories', (req, res) => {
       insert.finalize();
     }
 
-    console.log(`✅ Created category "${name}" (ID: ${categoryId})`);
     res.status(201).json({ id: categoryId });
   });
 
@@ -45,7 +46,9 @@ router.post('/categories', (req, res) => {
 // UPDATE category (POST /api/categories/:id)
 router.post('/categories/:id', (req, res) => {
   const { id } = req.params;
-  let { name, slug, image_url, productIds } = req.body;
+  let { name, image_url, productIds } = req.body;
+  const slug = slugify(name);
+
 
   // ensure image_url is never empty
   if (!image_url || image_url.trim() === '') {
@@ -69,7 +72,7 @@ router.post('/categories/:id', (req, res) => {
       if (err) console.error(err);
 
       // Step 2: Add new links
-      if (productIds && productIds.length > 0) {
+      if (Array.isArray(productIds) && productIds.length > 0) {
         const insert = db.prepare(`
           INSERT OR IGNORE INTO product_categories (product_id, category_id)
           VALUES (?, ?)

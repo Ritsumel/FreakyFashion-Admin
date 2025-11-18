@@ -26,10 +26,15 @@ document.querySelector('.new-product-form').addEventListener('submit', async (e)
         });
 
         if (res.status === 201) {
-            const data = await res.json(); // assume backend returns { id: ... }
+            const data = await res.json();
             window.location.href = `/admin/products/${data.id}`;
         } else {
-            alert('Något gick fel vid skapandet av produkten');
+            let message = 'Något gick fel vid skapandet av produkten';
+            try {
+                const err = await res.json();
+                if (err.error) message = err.error;
+            } catch (_) {}
+            alert(message);
         }
     } catch (err) {
         console.error(err);

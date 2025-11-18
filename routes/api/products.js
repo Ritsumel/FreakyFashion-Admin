@@ -1,42 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../../db'); // connects to data/freakyfashion.db
+const slugify = require('../../utils/slugify');
+const normalize = require('../../utils/normalize');
+const matchCategories = require('../../utils/matchCategories');
+const validateSKU = require('../../utils/validateSKU');
 
 
 // CREATE new product (multi-category support)
 router.post('/products', (req, res) => {
-
-  // --- Helper: normalize Swedish words for matching ---
-  function normalize(word) {
-    word = word.toLowerCase();
-
-    // only remove "or" if word is longer than 4 characters (so "skor" stays intact)
-    if (word.length > 4 && word.endsWith("or")) {
-      word = word.slice(0, -2);
-    }
-
-    if (word.endsWith("ar")) word = word.slice(0, -2); // klänningar -> klänning
-    if (word.endsWith("er")) word = word.slice(0, -2); // tröjer -> tröj
-    if (word.endsWith("a"))  word = word.slice(0, -1); // jacka -> jack
-    if (word.endsWith("an")) word = word.slice(0, -2); // jackan -> jack
-    if (word.endsWith("en")) word = word.slice(0, -2); // hatten -> hatt
-    if (word.endsWith("na")) word = word.slice(0, -2); // klänningarna -> klänning
-    return word;
-  }
-
-  // --- Accessory synonym list (maps words to "accessoarer" category)
-  const accessoryKeywords = [
-    "halsduk", "mössa", "keps", "hatt", "handskar", "vantar", "klocka", 
-    "klockor", "armband", "örhänge", "örhängen", "glasögon", "solglasögon", 
-    "halsband", "ring", "ringar", "smycke", "smycken", "bälte", "sjal", "scarf"
-  ];
-
-  const synonyms = {
-    byxor: ["jeans", "leggings", "chinos", "kostymbyxor", "mjukisbyxor"],
-    tröjor: ["hoodie", "sweatshirt", "t-shirt", "topp", "linne", "blus", "skjorta"],
-    skor: ["sneakers", "stövlar", "sandaler", "flip flops", "klackar", "klackskor", "pumps", "gympaskor"],
-    väskor: ["handväska", "ryggsäck", "axelväska", "kuvertväska"],
-  };
 
   const { name, description, sku, price, image_url, publishDate } = req.body;
 
@@ -44,15 +16,14 @@ router.post('/products', (req, res) => {
     return res.status(400).json({ error: 'Name and SKU are required' });
   }
 
-    // Validate SKU format (must be 3 letters + 3 digits)
-    const skuPattern = /^[A-Z]{3}[0-9]{3}$/i;
-        if (!skuPattern.test(sku)) {
-        return res.status(400).json({
-            error: 'SKU måste vara i formatet XXXYYY, där X är bokstäver och Y är siffror (t.ex. ABC123).'
-        });
+    // Validate SKU format
+    const { valid, message } = validateSKU(sku);
+    if (!valid) {
+      return res.status(400).json({ error: message });
     }
 
-  const slug = name.toLowerCase().replace(/\s+/g, '-');
+  const slug = slugify(name); 
+
   const normalizedSKU = sku.trim().toUpperCase(); // always uppercase
 
   const stmt = db.prepare(`
@@ -60,87 +31,54 @@ router.post('/products', (req, res) => {
     VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
-  stmt.run([name, slug, description, normalizedSKU, price, image_url, publishDate], function (err) {
+  db.get(`SELECT id FROM products WHERE sku = ?`, [normalizedSKU], (err, existing) => {
     if (err) {
-      console.error('🔥 Product insert failed:', err);
+      console.error('Error checking existing SKU:', err);
       return res.status(500).json({ error: 'Database error' });
     }
 
-    const productId = this.lastID;
-    const text = `${name} ${description}`
-      .split(/\s+/)
-      .map(normalize)
-      .join(' ');
+    if (existing) {
+      return res.status(400).json({ error: 'Det finns redan en produkt med samma SKU.' });
+    }
 
-    // Find matching categories automatically
-    db.all(`SELECT id, name FROM categories`, [], (err, categories) => {
-    if (err) return console.error('Error fetching categories:', err);
+    stmt.run([name, slug, description, normalizedSKU, price, image_url, publishDate], function (err) {
+      if (err) {
+        console.error('Product insert failed:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
 
-    const matches = categories.filter(cat => {
-      const catName = normalize(cat.name);
-      const lowerText = text.toLowerCase();
+      const productId = this.lastID;
+      const text = `${name} ${description}`
+        .split(/\s+/)
+        .map(normalize)
+        .join(' ');
 
-      // --- Direct name match (simple substring)
-      if (lowerText.includes(catName)) return true;
-
-      // --- Synonym-based category linking
-      const relatedWords =
-        synonyms[cat.name.toLowerCase()] || synonyms[normalize(cat.name)] || [];
+      // Find matching categories automatically
+      db.all(`SELECT id, name FROM categories`, [], (err, categories) => {
+      if (err) return console.error('Error fetching categories:', err);
 
       // For byxor, tröjor, skor → require exact word matches to avoid overmatching
-      if (['byxor', 'tröjor', 'skor'].includes(catName)) {
-        if (relatedWords.some(word => new RegExp(`\\b${normalize(word)}\\b`, 'i').test(lowerText))) {
-          return true;
-        }
-      } 
-      // For other categories → allow partial matches (like vinterjacka, regnjacka)
-      else {
-        if (relatedWords.some(word => lowerText.includes(normalize(word)))) {
-          return true;
-        }
-      }
+      const matches = matchCategories(text, categories, normalize);
 
-      // --- Accessories logic (special category)
-      if (
-        catName.includes('accessoar') &&
-        accessoryKeywords.some(word => lowerText.includes(normalize(word)))
-      ) {
-        return true;
+      // --- Insert matches into link table
+      if (matches.length > 0) {
+        const insert = db.prepare(`
+          INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)
+        `);
+        matches.forEach(cat => {
+          insert.run([productId, cat.id], err2 => {
+            if (err2) console.error('Error linking product to category:', err2);
+          });
+        });
+        insert.finalize();
       }
-
-      // --- Generic clothing logic (broad category “Kläder”)
-      if (
-        catName.includes('kläd') &&
-        [
-          'jacka', 'jackor', 'byxa', 'byxor', 'jeans', 
-          'klänning', 'klänningar', 'tröja', 'tröjor', 
-          'kjol', 'kjolar'
-        ].some(word => lowerText.includes(normalize(word)))
-      ) {
-        return true;
-      }
-
-      return false;
     });
 
-    // --- 5️⃣ Insert matches into link table
-    if (matches.length > 0) {
-      const insert = db.prepare(`
-        INSERT INTO product_categories (product_id, category_id) VALUES (?, ?)
-      `);
-      matches.forEach(cat => {
-        insert.run([productId, cat.id], err2 => {
-          if (err2) console.error('Error linking product to category:', err2);
-        });
-      });
-      insert.finalize();
-    }
-  });
+      res.status(201).json({ id: productId });
+    });
 
-    res.status(201).json({ id: productId });
+    stmt.finalize();
   });
-
-  stmt.finalize();
 });
 
 // Publish product (set publishDate to now)
